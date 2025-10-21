@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Modern Städfirma Landningssida</title>
+    <!-- Laddar in Tailwind CSS för snabb och responsiv styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Sätter Inter som standardtypsnitt och en mörk bakgrund */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117; /* Mörk bakgrund */
+            color: #c9d1d9; /* Ljus textfärg */
+            min-height: 100vh;
+        }
+        /* Egen klass för accentfärgen (Vi byter till en fräsch grön färg för renlighet) */
+        .accent-bg {
+            background-color: #10b981; /* Grön accentfärg (Emerald) */
+        }
+        .accent-text {
+            color: #10b981;
+        }
+        /* Styling för laddningsindikatorn */
+        .loader {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+    <script>
+        // Gemini API inställningar
+        const apiKey = ""; 
+        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+
+        // JavaScript för att hantera mobilmenyn
+        function toggleMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // JavaScript för ett litet interaktivt meddelande (istället för alert())
+        function showMessage(text, isError = false) {
+            const messageBox = document.getElementById('message-box');
+            const messageText = document.getElementById('message-text');
+
+            messageBox.classList.remove('bg-green-600', 'bg-red-600');
+            messageBox.classList.add(isError ? 'bg-red-600' : 'bg-green-600');
+
+            messageText.textContent = text;
+            messageBox.classList.remove('opacity-0', 'pointer-events-none');
+            messageBox.classList.add('opacity-100');
+
+            setTimeout(() => {
+                messageBox.classList.remove('opacity-100');
+                messageBox.classList.add('opacity-0', 'pointer-events-none');
+            }, 4000);
+        }
+
+        // Gemini LLM-integration: Analyserar kundmeddelandet
+        async function analyzeMessage() {
+            const messageInput = document.getElementById('message');
+            const message = messageInput.value.trim();
+            const loader = document.getElementById('loader');
+            const aiResults = document.getElementById('ai-results');
+            const categoryOutput = document.getElementById('ai-category');
+            const responseOutput = document.getElementById('ai-draft');
+
+            if (message.length < 50) {
+                showMessage("Meddelandet måste vara längre (minst 50 tecken) för att AI:n ska kunna analysera det.", true);
+                return;
+            }
+
+            // Visa laddningsindikator och dölj resultat
+            aiResults.classList.add('hidden');
+            loader.classList.remove('hidden');
+            categoryOutput.textContent = 'Laddar...';
+            responseOutput.textContent = 'Laddar...';
+
+            // Systeminstruktioner för LLM (Anpassade för städfirma)
+            const systemPrompt = "Du är en AI-assistent för städföretaget Ren & Fin AB. Din uppgift är att analysera ett inkommande kundmeddelande (förfrågan om städtjänst) och klassificera det samt föreslå en intern första åtgärd. Svara endast med en JSON-struktur. Analysera texten och ge mig en kort sammanfattning av vad kunden vill ha, vilken tjänstekategori det tillhör och ett kort internt svar som en medarbetare kan skicka. Ditt svar ska vara professionellt och på svenska. Tjänstekategorier: Flyttstädning, Hemstädning, Kontorsstädning, Övrig Förfrågan.";
+            const userQuery = `Analysera följande kundmeddelande: "${message}"`;
+
+            // JSON Schema för strukturerat svar
+            const responseSchema = {
+                type: "OBJECT",
+                properties: {
+                    "serviceCategory": { "type": "STRING", "description": "Tjänstekategori (t.ex. Flyttstädning, Hemstädning, Kontorsstädning, Övrig Förfrågan)" },
+                    "internalSummary": { "type": "STRING", "description": "Kort sammanfattning av kundens behov (t.ex. 'Kunden önskar offert för veckostädning av villa, 150 kvm')" },
+                    "draftResponse": { "type": "STRING", "description": "Ett kort, professionellt utkast till svar på svenska" }
+                },
+                propertyOrdering: ["serviceCategory", "internalSummary", "draftResponse"]
+            };
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: responseSchema
+                }
+            };
+
+            try {
+                let response;
+                let data;
+                
+                // Implementera exponential backoff för API-anrop
+                for (let i = 0; i < 3; i++) {
+                    response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.ok) {
+                        data = await response.json();
+                        break;
+                    } else if (i < 2) {
+                        // Vänta med exponential backoff
+                        const delay = Math.pow(2, i) * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                    } else {
+                        throw new Error(`API-anrop misslyckades med status: ${response.status}`);
+                    }
+                }
+
+                if (!data || !data.candidates || data.candidates.length === 0) {
+                    throw new Error("Kunde inte hämta ett giltigt svar från AI.");
+                }
+
+                const jsonString = data.candidates[0].content.parts[0].text;
+                const result = JSON.parse(jsonString);
+
+                // Uppdatera UI med resultat
+                categoryOutput.textContent = result.serviceCategory || 'Okänd';
+                responseOutput.textContent = result.draftResponse || 'Kunde inte generera svar.';
+                
+                aiResults.classList.remove('hidden');
+                showMessage("Meddelande analyserades framgångsrikt av AI! Se föreslagen kategori och svar.");
+
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                showMessage(`Ett fel uppstod under AI-analysen: ${error.message}`, true);
+            } finally {
+                // Dölj laddningsindikatorn
+                loader.classList.add('hidden');
+            }
+        }
+    </script>
+</head>
+<body class="antialiased">
+
+    <!-- Meddelanderuta (Alert-ersättning) -->
+    <div id="message-box" class="fixed top-5 right-5 bg-green-600 text-white p-4 rounded-lg shadow-xl transition-opacity duration-300 opacity-0 pointer-events-none z-50">
+        <p id="message-text">Åtgärd utförd!</p>
+    </div>
+
+    <!-- Huvudnavigering -->
+    <nav class="bg-[#161b22] shadow-lg sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <!-- Logotyp -->
+                <div class="flex-shrink-0 text-2xl font-bold accent-text">
+                    REN & FIN AB
+                </div>
+
+                <!-- Desktop-knappar -->
+                <div class="hidden md:flex items-center space-x-2">
+                    <!-- Standardknappar -->
+                    <a href="#hem" class="px-3 py-1.5 rounded-lg transition duration-200 text-sm font-medium hover:bg-gray-700">Hem</a>
+                    <a href="#funktioner" class="px-3 py-1.5 rounded-lg transition duration-200 text-sm font-medium hover:bg-gray-700">Fördelar</a>
+                    <a href="#tjanster" class="px-3 py-1.5 rounded-lg transition duration-200 text-sm font-medium hover:bg-gray-700">Priser & Tjänster</a>
+                    
+                    <!-- Primär knapp (Kontakt) -->
+                    <a href="#kontakt" class="accent-bg text-white px-4 py-1.5 rounded-lg transition duration-200 text-sm font-semibold hover:bg-emerald-600 ml-4">Offertförfrågan</a>
+                </div>
+
+                <!-- Mobilmeny-knapp -->
+                <button type="button" class="md:hidden p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white" aria-controls="mobile-menu" aria-expanded="false" onclick="toggleMenu()">
+                    <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- Mobilmenyn (Döljs som standard) -->
+        <div class="md:hidden hidden" id="mobile-menu">
+            <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                <a href="#hem" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700" onclick="toggleMenu()">Hem</a>
+                <a href="#funktioner" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700" onclick="toggleMenu()">Fördelar</a>
+                <a href="#tjanster" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700" onclick="toggleMenu()">Priser & Tjänster</a>
+                <!-- Gör Kontakt till en knapp även i mobilmenyn -->
+                <a href="#kontakt" class="block px-3 py-2 rounded-md text-base font-medium accent-bg text-white hover:bg-emerald-600 transition duration-200 mt-1" onclick="toggleMenu()">Offertförfrågan</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+
+        <!-- Sektion 1: Hero (Huvudbudskap) -->
+        <section id="hem" class="py-20 lg:py-32 text-center">
+            <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight">
+                <span class="block">Tid för ett skinande rent hem?</span>
+                <span class="block accent-text">Professionell Städning, Enkel Bokning.</span>
+            </h1>
+            <p class="text-xl sm:text-2xl text-gray-400 mb-10 max-w-3xl mx-auto">
+                Vi tar hand om smutsen så att du kan fokusera på det som är viktigt. Miljövänligt, pålitligt och prisvärt.
+            </p>
+            <a href="#kontakt" class="accent-bg text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:bg-emerald-600 transition duration-300 transform hover:scale-105">
+                Boka Din Städning Nu
+            </a>
+            <a href="#funktioner" class="ml-4 text-white font-semibold py-3 px-8 border-2 border-gray-600 rounded-xl hover:bg-gray-800 transition duration-300">
+                Våra Fördelar
+            </a>
+        </section>
+
+        <!-- Sektion 2: Funktioner (Nu "Fördelar") -->
+        <section id="funktioner" class="py-16 border-t border-gray-700">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12">Dina Fördelar med Oss</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+                <!-- Fördelskort 1 -->
+                <div class="bg-[#161b22] p-8 rounded-xl shadow-2xl border border-gray-700 transition duration-300 hover:border-accent-text">
+                    <div class="accent-text text-3xl mb-4">
+                        <!-- Ikon: Pålitlighet/Lås (Säker och pålitlig service) -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8">
+                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-white">Pålitlig Kvalitet</h3>
+                    <p class="text-gray-400">Garanterat skinande rent resultat varje gång. Våra team är utbildade och försäkrade.</p>
+                </div>
+
+                <!-- Fördelskort 2 -->
+                <div class="bg-[#161b22] p-8 rounded-xl shadow-2xl border border-gray-700 transition duration-300 hover:border-accent-text">
+                    <div class="accent-text text-3xl mb-4">
+                        <!-- Ikon: Värld/Global (Miljötänk/Hållbart) -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-white">Miljövänligt Fokus</h3>
+                    <p class="text-gray-400">Vi använder uteslutande Svanenmärkta produkter för en hållbar och hälsosam miljö.</p>
+                </div>
+
+                <!-- Fördelskort 3 -->
+                <div class="bg-[#161b22] p-8 rounded-xl shadow-2xl border border-gray-700 transition duration-300 hover:border-accent-text">
+                    <div class="accent-text text-3xl mb-4">
+                        <!-- Ikon: Kalender/Klocka (Flexibel Bokning) -->
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8">
+                            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                            <line x1="16" y1="2" x2="16" y2="6"></line>
+                            <line x1="8" y1="2" x2="8" y2="6"></line>
+                            <line x1="3" y1="10" x2="21" y2="10"></line>
+                        </svg>
+                    </div>
+                    <h3 class="text-xl font-semibold mb-3 text-white">Enkel & Flexibel Bokning</h3>
+                    <p class="text-gray-400">Boka, ändra eller avboka städtider enkelt online. Vi anpassar oss efter ditt schema.</p>
+                </div>
+            </div>
+        </section>
+        
+        <!-- Sektion 3: Tjänster (Detaljerad) - Nu "Priser & Tjänster" -->
+        <section id="tjanster" class="py-16 border-t border-gray-700">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12">Priser & Huvudtjänster</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <!-- Tjänstekort 1: Hem/Privatstädning -->
+                <div class="bg-[#161b22] p-6 rounded-xl shadow-xl border border-gray-700">
+                    <h3 class="text-2xl font-semibold accent-text mb-3">Hem- & Storstädning</h3>
+                    <p class="text-gray-400 mb-4">Regelbunden veckostädning eller en grundlig storstädning. Inklusive fönsterputs på begäran.</p>
+                    <ul class="list-disc list-inside text-gray-500 space-y-1 pl-4">
+                        <li>Fast timpris (efter RUT-avdrag)</li>
+                        <li>Nyckelfria lösningar tillgängliga</li>
+                        <li>Personlig städare vid varje tillfälle</li>
+                    </ul>
+                </div>
+
+                <!-- Tjänstekort 2: Företag/Flytt -->
+                <div class="bg-[#161b22] p-6 rounded-xl shadow-xl border border-gray-700">
+                    <h3 class="text-2xl font-semibold accent-text mb-3">Kontor & Flyttstädning</h3>
+                    <p class="text-gray-400 mb-4">Specialtjänster för företag och dig som ska byta bostad. 100% nöjd-kund-garanti på flyttstäd.</p>
+                    <ul class="list-disc list-inside text-gray-500 space-y-1 pl-4">
+                        <li>Offert baserad på yta och behov</li>
+                        <li>Flexibla tider (kvällar/helger för kontor)</li>
+                        <li>All utrustning och material ingår</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="text-center mt-12">
+                <a href="#kontakt" class="text-gray-400 hover:accent-text transition duration-300 border-b border-gray-600 pb-1">Få ett exakt pris för din yta &rarr;</a>
+            </div>
+        </section>
+
+
+        <!-- Sektion 4: CTA (Redo att agera) -->
+        <section id="cta-ready" class="py-16 text-center border-t border-gray-700">
+            <h2 class="text-3xl sm:text-4xl font-bold mb-4">Redo för en Renare Vardag?</h2>
+            <p class="text-xl text-gray-400 mb-8 max-w-3xl mx-auto">
+                Slösa inte tid på städning. Låt oss hantera det, snabbt och effektivt. Begär din kostnadsfria offert idag.
+            </p>
+            <a href="#kontakt" class="accent-bg text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:bg-emerald-600 transition duration-300">
+                Få En Offert
+            </a>
+        </section>
+        
+        <!-- Sektion 5: Kontaktformulär - NU MED GEMINI-INTEGRATION -->
+        <section id="kontakt" class="py-16 border-t border-gray-700">
+             <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12">Kontakta Oss för Offert</h2>
+
+             <div class="max-w-lg mx-auto bg-[#161b22] p-8 rounded-xl shadow-2xl border border-gray-700">
+                <form onsubmit="event.preventDefault(); showMessage('Tack för din förfrågan! Vi återkommer med en offert inom 24 timmar.'); this.reset();">
+                    <div class="mb-4">
+                        <label for="name" class="block text-sm font-medium mb-2">Namn</label>
+                        <input type="text" id="name" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-accent-text focus:ring-accent-text text-white" placeholder="Ditt Namn">
+                    </div>
+                    <div class="mb-4">
+                        <label for="email" class="block text-sm font-medium mb-2">E-post</label>
+                        <input type="email" id="email" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-accent-text focus:ring-accent-text text-white" placeholder="din.epost@exempel.com">
+                    </div>
+                    <div class="mb-6">
+                        <label for="message" class="block text-sm font-medium mb-2">Förfrågan</label>
+                        <textarea id="message" rows="4" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-accent-text focus:ring-accent-text text-white" placeholder="Beskriv vad du behöver städhjälp med (t.ex. 'Veckostädning av lägenhet, 75 kvm, i Göteborg')."></textarea>
+                    </div>
+
+                    <!-- Gemini LLM-knapp för analys -->
+                    <button type="button" onclick="analyzeMessage()" class="w-full bg-indigo-600 text-white font-semibold py-3 mb-4 rounded-xl hover:bg-indigo-700 transition duration-300 flex items-center justify-center">
+                        Få AI-analys av din förfrågan ✨
+                        <div id="loader" class="loader ml-3 hidden"></div>
+                    </button>
+                    
+                    <!-- AI-resultat (LLM Output) -->
+                    <div id="ai-results" class="hidden bg-gray-800 p-4 rounded-lg border border-gray-700 mb-6 transition duration-300">
+                        <h4 class="text-sm font-bold text-indigo-400 mb-2">AI-Assistentens Bedömning (Internt)</h4>
+                        
+                        <div class="mb-3">
+                            <p class="text-xs text-gray-500 font-medium uppercase">Föreslagen Tjänstekategori:</p>
+                            <p id="ai-category" class="text-white font-semibold"></p>
+                        </div>
+                        
+                        <div>
+                            <p class="text-xs text-gray-500 font-medium uppercase">Utkast till Svar (för medarbetare):</p>
+                            <p id="ai-draft" class="text-gray-300 italic text-sm"></p>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="w-full accent-bg text-white font-semibold py-3 rounded-xl hover:bg-emerald-600 transition duration-300">
+                        Skicka Förfrågan
+                    </button>
+                </form>
+             </div>
+        </section>
+
+    </main>
+
+    <!-- Sidfot -->
+    <footer class="bg-[#161b22] mt-10 p-6 text-center border-t border-gray-700">
+        <p class="text-sm text-gray-500">
+            &copy; 2025 Ren & Fin AB. Alla rättigheter reserverade. | <a href="#" class="hover:accent-text">Integritetspolicy</a>
+        </p>
+    </footer>
+
+</body>
+</html>
