@@ -215,12 +215,18 @@
             <p class="text-xl sm:text-2xl text-gray-400 mb-10 max-w-3xl mx-auto">
                 Vi tar hand om smutsen så att du kan fokusera på det som är viktigt. Miljövänligt, pålitligt och prisvärt.
             </p>
-            <a href="#kontakt" class="accent-bg text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:bg-emerald-600 transition duration-300 transform hover:scale-105">
-                Boka Din Städning Nu
-            </a>
-            <a href="#funktioner" class="ml-4 text-white font-semibold py-3 px-8 border-2 border-gray-600 rounded-xl hover:bg-gray-800 transition duration-300">
-                Våra Fördelar
-            </a>
+            
+            <!-- BUTTONS CONTAINER: Ny struktur för responsivitet -->
+            <div class="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                <!-- Knapp 1: Boka Din Städning Nu (Primär) -->
+                <a href="#kontakt" class="w-full sm:w-auto accent-bg text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:bg-emerald-600 transition duration-300 transform hover:scale-105">
+                    Boka Din Städning Nu
+                </a>
+                <!-- Knapp 2: Våra Fördelar (Sekundär) -->
+                <a href="#funktioner" class="w-full sm:w-auto text-white font-semibold py-3 px-8 border-2 border-gray-600 rounded-xl hover:bg-gray-800 transition duration-300">
+                    Våra Fördelar
+                </a>
+            </div>
         </section>
 
         <!-- Sektion 2: Funktioner (Nu "Fördelar") -->
