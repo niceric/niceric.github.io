@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>REN & FIN AB - Din städfirma</title>
+    <title>Modern Städfirma Landningssida</title>
     <!-- Laddar in Tailwind CSS för snabb och responsiv styling -->
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
@@ -35,18 +35,26 @@
             100% { transform: rotate(360deg); }
         }
     </style>
-    <script>
-        // Gemini API inställningar
+    <!-- Använder type="module" för Gemini API-integrationslogik -->
+    <script type="module">
+        // --- API KONFIGURATION ---
+        // OBS: Dessa är för utvecklingsmiljön (Canvas). 
+        // I produktion måste du använda din PROXY_... URL för att hantera API-nycklar säkert.
         const apiKey = ""; 
-        const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const GEMINI_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+        const PROXY_GEMINI_URL = '/api/analyze-message'; 
+        
+        // Ny URL för E-post-proxy (MÅSTE implementeras på din server)
+        const PROXY_EMAIL_URL = '/api/send-email'; 
 
-        // JavaScript för att hantera mobilmenyn
+        // --- GEMENSAMMA FUNKTIONER ---
+
         function toggleMenu() {
             const menu = document.getElementById('mobile-menu');
             menu.classList.toggle('hidden');
         }
+        window.toggleMenu = toggleMenu; 
 
-        // JavaScript för ett litet interaktivt meddelande (istället för alert())
         function showMessage(text, isError = false) {
             const messageBox = document.getElementById('message-box');
             const messageText = document.getElementById('message-text');
@@ -63,8 +71,57 @@
                 messageBox.classList.add('opacity-0', 'pointer-events-none');
             }, 4000);
         }
+        window.showMessage = showMessage; 
 
-        // Gemini LLM-integration: Analyserar kundmeddelandet
+        // --- E-POST FORM SUBMISSION (Ny logik) ---
+        async function submitForm(event) {
+            event.preventDefault();
+
+            const submitButton = event.submitter;
+            const originalButtonText = submitButton.innerHTML;
+            
+            submitButton.disabled = true;
+            submitButton.innerHTML = `<svg class="animate-spin h-5 w-5 mr-3 text-white" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> Skickar...`;
+
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const message = document.getElementById('message').value;
+
+            // Payload för att skickas till din proxy-server
+            const emailPayload = {
+                toEmail: "komigendaa@gmail.com", // Måladress skickas till backend
+                fromName: name,
+                fromEmail: email,
+                messageContent: message
+            };
+            
+            try {
+                // Anropar din proxy-server för att skicka e-post
+                const response = await fetch(PROXY_EMAIL_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(emailPayload)
+                });
+                
+                if (response.ok) {
+                    showMessage('Tack för din förfrågan! E-post har skickats till ' + emailPayload.toEmail, false);
+                    event.target.reset(); 
+                } else {
+                    const errorData = await response.json().catch(() => ({ message: 'Okänt fel' }));
+                    throw new Error(`Kunde inte skicka e-post: ${response.status} - ${errorData.message}`);
+                }
+
+            } catch (error) {
+                console.error("E-post API Fel:", error);
+                showMessage(`Ett fel uppstod: ${error.message}. E-post skickades ej.`, true);
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalButtonText;
+            }
+        }
+        window.submitForm = submitForm; 
+        
+        // --- GEMINI LLM-INTEGRATION (använder nu PROXY_GEMINI_URL) ---
         async function analyzeMessage() {
             const messageInput = document.getElementById('message');
             const message = messageInput.value.trim();
@@ -78,53 +135,74 @@
                 return;
             }
 
-            // Visa laddningsindikator och dölj resultat
             aiResults.classList.add('hidden');
             loader.classList.remove('hidden');
             categoryOutput.textContent = 'Laddar...';
             responseOutput.textContent = 'Laddar...';
 
-            // Systeminstruktioner för LLM (Anpassade för städfirma)
-            const systemPrompt = "Du är en AI-assistent för städföretaget Ren & Fin AB. Din uppgift är att analysera ett inkommande kundmeddelande (förfrågan om städtjänst) och klassificera det samt föreslå en intern första åtgärd. Svara endast med en JSON-struktur. Analysera texten och ge mig en kort sammanfattning av vad kunden vill ha, vilken tjänstekategori det tillhör och ett kort internt svar som en medarbetare kan skicka. Ditt svar ska vara professionellt och på svenska. Tjänstekategorier: Flyttstädning, Hemstädning, Kontorsstädning, Övrig Förfrågan.";
-            const userQuery = `Analysera följande kundmeddelande: "${message}"`;
-
-            // JSON Schema för strukturerat svar
-            const responseSchema = {
-                type: "OBJECT",
-                properties: {
-                    "serviceCategory": { "type": "STRING", "description": "Tjänstekategori (t.ex. Flyttstädning, Hemstädning, Kontorsstädning, Övrig Förfrågan)" },
-                    "internalSummary": { "type": "STRING", "description": "Kort sammanfattning av kundens behov (t.ex. 'Kunden önskar offert för veckostädning av villa, 150 kvm')" },
-                    "draftResponse": { "type": "STRING", "description": "Ett kort, professionellt utkast till svar på svenska" }
-                },
-                propertyOrdering: ["serviceCategory", "internalSummary", "draftResponse"]
-            };
-
-            const payload = {
-                contents: [{ parts: [{ text: userQuery }] }],
-                systemInstruction: { parts: [{ text: systemPrompt }] },
-                generationConfig: {
-                    responseMimeType: "application/json",
-                    responseSchema: responseSchema
-                }
+            const clientPayload = {
+                message: message,
             };
 
             try {
                 let response;
                 let data;
                 
-                // Implementera exponential backoff för API-anrop
+                // Kontroll för Canvas-miljön för att behålla Gemini-funktionaliteten här
+                const isCanvasEnv = typeof __app_id !== 'undefined';
+                const fetchUrl = isCanvasEnv ? GEMINI_API_URL : PROXY_GEMINI_URL;
+                
                 for (let i = 0; i < 3; i++) {
-                    response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(payload)
-                    });
+                    
+                    if (isCanvasEnv) {
+                        // Logik för att anropa Gemini direkt i Canvas-miljön
+                        const systemPrompt = "Du är en AI-assistent för städföretaget Ren & Fin AB. Din uppgift är att analysera ett inkommande kundmeddelande (förfrågan om städtjänst) och klassificera det samt föreslå en intern första åtgärd. Svara endast med en JSON-struktur. Analysera texten och ge mig en kort sammanfattning av vad kunden vill ha, vilken tjänstekategori det tillhör och ett kort internt svar som en medarbetare kan skicka. Ditt svar ska vara professionellt och på svenska. Tjänstekategorier: Flyttstädning, Hemstädning, Kontorsstädning, Övrig Förfrågan.";
+                        const userQuery = `Analysera följande kundmeddelande: "${message}"`;
+                        const responseSchema = {
+                            type: "OBJECT",
+                            properties: {
+                                "serviceCategory": { "type": "STRING", "description": "Tjänstekategori (t.ex. Flyttstädning, Hemstädning, Kontorsstädning, Övrig Förfrågan)" },
+                                "internalSummary": { "type": "STRING", "description": "Kort sammanfattning av kundens behov (t.ex. 'Kunden önskar offert för veckostädning av villa, 150 kvm')" },
+                                "draftResponse": { "type": "STRING", "description": "Ett kort, professionellt utkast till svar på svenska" }
+                            },
+                            propertyOrdering: ["serviceCategory", "internalSummary", "draftResponse"]
+                        };
+                        const payload = {
+                            contents: [{ parts: [{ text: userQuery }] }],
+                            systemInstruction: { parts: [{ text: systemPrompt }] },
+                            generationConfig: {
+                                responseMimeType: "application/json",
+                                responseSchema: responseSchema
+                            }
+                        };
+                        response = await fetch(fetchUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        
+                        if (response.ok) {
+                            data = await response.json();
+                            const jsonString = data.candidates[0].content.parts[0].text;
+                            data = JSON.parse(jsonString); 
+                        }
+
+                    } else { 
+                        // Anropa din proxy för Gemini i produktionsmiljön
+                        response = await fetch(fetchUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(clientPayload) 
+                        });
+                        
+                        if (response.ok) {
+                            data = await response.json(); 
+                        }
+                    }
 
                     if (response.ok) {
-                        data = await response.json();
                         break;
                     } else if (i < 2) {
-                        // Vänta med exponential backoff
                         const delay = Math.pow(2, i) * 1000;
                         await new Promise(resolve => setTimeout(resolve, delay));
                     } else {
@@ -132,28 +210,24 @@
                     }
                 }
 
-                if (!data || !data.candidates || data.candidates.length === 0) {
+                if (!data || !data.serviceCategory) {
                     throw new Error("Kunde inte hämta ett giltigt svar från AI.");
                 }
 
-                const jsonString = data.candidates[0].content.parts[0].text;
-                const result = JSON.parse(jsonString);
-
-                // Uppdatera UI med resultat
-                categoryOutput.textContent = result.serviceCategory || 'Okänd';
-                responseOutput.textContent = result.draftResponse || 'Kunde inte generera svar.';
+                categoryOutput.textContent = data.serviceCategory || 'Okänd';
+                responseOutput.textContent = data.draftResponse || 'Kunde inte generera svar.';
                 
                 aiResults.classList.remove('hidden');
                 showMessage("Meddelande analyserades framgångsrikt av AI! Se föreslagen kategori och svar.");
 
             } catch (error) {
-                console.error("Gemini API Error:", error);
+                console.error("AI API Error:", error);
                 showMessage(`Ett fel uppstod under AI-analysen: ${error.message}`, true);
             } finally {
-                // Dölj laddningsindikatorn
                 loader.classList.add('hidden');
             }
         }
+        window.analyzeMessage = analyzeMessage; 
     </script>
 </head>
 <body class="antialiased">
@@ -184,7 +258,7 @@
                 </div>
 
                 <!-- Mobilmeny-knapp -->
-                <button type="button" class="md:hidden p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white" aria-controls="mobile-menu" aria-expanded="false" onclick="toggleMenu()">
+                <button type="button" class="md:hidden p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white" aria-controls="mobile-menu" aria-expanded="false" onclick="window.toggleMenu()">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
                     </svg>
@@ -195,11 +269,11 @@
         <!-- Mobilmenyn (Döljs som standard) -->
         <div class="md:hidden hidden" id="mobile-menu">
             <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="#hem" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700" onclick="toggleMenu()">Hem</a>
-                <a href="#funktioner" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700" onclick="toggleMenu()">Fördelar</a>
-                <a href="#tjanster" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700" onclick="toggleMenu()">Priser & Tjänster</a>
+                <a href="#hem" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700" onclick="window.toggleMenu()">Hem</a>
+                <a href="#funktioner" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700" onclick="window.toggleMenu()">Fördelar</a>
+                <a href="#tjanster" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700" onclick="window.toggleMenu()">Priser & Tjänster</a>
                 <!-- Gör Kontakt till en knapp även i mobilmenyn -->
-                <a href="#kontakt" class="block px-3 py-2 rounded-md text-base font-medium accent-bg text-white hover:bg-emerald-600 transition duration-200 mt-1" onclick="toggleMenu()">Offertförfrågan</a>
+                <a href="#kontakt" class="block px-3 py-2 rounded-md text-base font-medium accent-bg text-white hover:bg-emerald-600 transition duration-200 mt-1" onclick="window.toggleMenu()">Offertförfrågan</a>
             </div>
         </div>
     </nav>
@@ -322,12 +396,13 @@
             </a>
         </section>
         
-        <!-- Sektion 5: Kontaktformulär - NU MED GEMINI-INTEGRATION -->
+        <!-- Sektion 5: Kontaktformulär - NU MED E-POSTSUBMISSION -->
         <section id="kontakt" class="py-16 border-t border-gray-700">
              <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12">Kontakta Oss för Offert</h2>
 
              <div class="max-w-lg mx-auto bg-[#161b22] p-8 rounded-xl shadow-2xl border border-gray-700">
-                <form onsubmit="event.preventDefault(); showMessage('Tack för din förfrågan! Vi återkommer med en offert inom 24 timmar.'); this.reset();">
+                <!-- Formuläret anropar submitForm som nu skickar till din E-post proxy -->
+                <form onsubmit="window.submitForm(event)">
                     <div class="mb-4">
                         <label for="name" class="block text-sm font-medium mb-2">Namn</label>
                         <input type="text" id="name" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-accent-text focus:ring-accent-text text-white" placeholder="Ditt Namn">
@@ -342,7 +417,7 @@
                     </div>
 
                     <!-- Gemini LLM-knapp för analys -->
-                    <button type="button" onclick="analyzeMessage()" class="w-full bg-indigo-600 text-white font-semibold py-3 mb-4 rounded-xl hover:bg-indigo-700 transition duration-300 flex items-center justify-center">
+                    <button type="button" onclick="window.analyzeMessage()" class="w-full bg-indigo-600 text-white font-semibold py-3 mb-4 rounded-xl hover:bg-indigo-700 transition duration-300 flex items-center justify-center">
                         Få AI-analys av din förfrågan ✨
                         <div id="loader" class="loader ml-3 hidden"></div>
                     </button>
@@ -362,7 +437,7 @@
                         </div>
                     </div>
                     
-                    <button type="submit" class="w-full accent-bg text-white font-semibold py-3 rounded-xl hover:bg-emerald-600 transition duration-300">
+                    <button type="submit" class="w-full accent-bg text-white font-semibold py-3 rounded-xl hover:bg-emerald-600 transition duration-300 flex items-center justify-center">
                         Skicka Förfrågan
                     </button>
                 </form>
