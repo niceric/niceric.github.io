@@ -3,28 +3,58 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Modern Städfirma Landningssida</title>
-    <!-- Laddar in Tailwind CSS för snabb och responsiv styling -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>Renahem & Kontorsservice</title>
+    <!-- Laddar in Tailwind CSS för snabb och responsiv styling --><script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Sätter Inter som standardtypsnitt och en mörk bakgrund */
+        html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 80px; /* Adjust as needed */
+    }
+        /* Sätter Inter som standardtypsnitt och en MÖRK bakgrund */
         body {
             font-family: 'Inter', sans-serif;
             background-color: #0d1117; /* Mörk bakgrund */
-            color: #c9d1d9; /* Ljus textfärg */
+            color: #e2e8f0; /* Ljus textfärg för kontrast */
             min-height: 100vh;
         }
-        /* Egen klass för accentfärgen (Vi byter till en fräsch grön färg för renlighet) */
+        
+        /* Huvudaccentfärgen (Grön) */
         .accent-bg {
             background-color: #10b981; /* Grön accentfärg (Emerald) */
         }
         .accent-text {
-            color: #10b981;
+            color: #10b981; /* Grön accentfärg (Emerald) */
         }
-        /* Styling för laddningsindikatorn */
+        
+        /* Färg för den utstickande CTA-knappen (Logotypens blåa färg) */
+        .cta-primary-bg {
+            background-color: #2c5697; /* Logotypens blå färg */
+        }
+        .cta-primary-bg:hover {
+            background-color: #3d6fb3; /* Lättare blå vid hover */
+        }
+
+        /* Bakgrund för kort och sektioner (Lättare mörk för djup) */
+        .card-bg {
+            background-color: #161b22; /* Lite ljusare mörk än body */
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+        }
+        /* Navigeringen behöver en mörk bakgrund och ljus text */
+        .nav-bg {
+            background-color: #161b22; /* Matchar kortbakgrund */
+            color: #e2e8f0;
+            border-bottom: 1px solid #2d333b;
+        }
+        /* Hover-effekt i navbaren */
+        .nav-text-hover:hover {
+            background-color: #21262d; /* Lätt gråsvart vid hover */
+            color: #10b981; /* Grön accentfärg */
+        }
+        
+        /* Styling för laddningsindikatorn (anpassad för accentfärg) */
         .loader {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid white;
+            border: 4px solid rgba(255, 255, 255, 0.3); /* Lätt vit för kontrast mot mörk bakgrund */
+            border-top: 4px solid #10b981; /* Grön topp */
             border-radius: 50%;
             width: 20px;
             height: 20px;
@@ -35,8 +65,7 @@
             100% { transform: rotate(360deg); }
         }
     </style>
-    <!-- Använder type="module" för Gemini API-integrationslogik -->
-    <script type="module">
+    <!-- Använder type="module" för Gemini API-integrationslogik --><script type="module">
         // --- API KONFIGURATION ---
         // OBS: Dessa är för utvecklingsmiljön (Canvas). 
         // I produktion måste du använda din PROXY_... URL för att hantera API-nycklar säkert.
@@ -45,10 +74,36 @@
         const PROXY_GEMINI_URL = '/api/analyze-message'; 
         
         // Ny URL för E-post-proxy (MÅSTE implementeras på din server)
-        // const PROXY_EMAIL_URL = '/api/send-email'; 
-        const PROXY_EMAIL_URL = 'http://localhost:3000/api/send-email'; 
+        const PROXY_EMAIL_URL = '/api/send-email'; 
 
-        
+        function calculatePrice() {
+    const kvmInput = document.getElementById('kvm-input');
+    const priceOutput = document.getElementById('price-output');
+    
+    // Hämta värdet och konvertera till ett heltal
+    const kvm = parseInt(kvmInput.value, 10);
+    
+    // Om input är tomt, ogiltigt, eller noll, visa standardtexten
+    if (isNaN(kvm) || kvm <= 0) {
+        priceOutput.textContent = 'Ange yta ovan';
+        return;
+    }
+    
+    const basePrice = 150; // 150 kr
+    const intervalSize = 25; // per 25 kvm
+    
+    // Beräkna antalet 25-kvm-intervaller. Math.ceil() avrundar alltid uppåt.
+    // Exempel: 35 kvm / 25 = 1.4, vilket avrundas upp till 2 intervaller.
+    const intervals = Math.ceil(kvm / intervalSize);
+    
+    // Beräkna det totala priset
+    const totalPrice = intervals * basePrice;
+    
+    // Visa resultatet
+    priceOutput.textContent = `${totalPrice} kr`;
+}
+// Gör funktionen tillgänglig för anrop från HTML (via oninput)
+window.calculatePrice = calculatePrice;
 
         // --- GEMENSAMMA FUNKTIONER ---
 
@@ -62,6 +117,7 @@
             const messageBox = document.getElementById('message-box');
             const messageText = document.getElementById('message-text');
 
+            // Ändra färgerna här för meddelanderutan (håller dem gröna/röda för standard feedback)
             messageBox.classList.remove('bg-green-600', 'bg-red-600');
             messageBox.classList.add(isError ? 'bg-red-600' : 'bg-green-600');
 
@@ -110,8 +166,9 @@
                     showMessage('Tack för din förfrågan! E-post har skickats till ' + emailPayload.toEmail, false);
                     event.target.reset(); 
                 } else {
-                    const errorData = await response.json().catch(() => ({ message: 'Okänt fel' }));
-                    throw new Error(`Kunde inte skicka e-post: ${response.status} - ${errorData.message}`);
+                    // Simulerar felmeddelande om proxy inte är implementerad
+                    const errorMsg = response.status === 404 ? 'Proxy-tjänsten (/api/send-email) är inte implementerad på servern.' : `Okänt fel: ${response.status}`;
+                    throw new Error(errorMsg);
                 }
 
             } catch (error) {
@@ -235,38 +292,30 @@
 </head>
 <body class="antialiased">
 
-    <!-- Meddelanderuta (Alert-ersättning) -->
-    <div id="message-box" class="fixed top-5 right-5 bg-green-600 text-white p-4 rounded-lg shadow-xl transition-opacity duration-300 opacity-0 pointer-events-none z-50">
+    <!-- Meddelanderuta (Alert-ersättning) --><div id="message-box" class="fixed top-5 right-5 bg-green-600 text-white p-4 rounded-lg shadow-xl transition-opacity duration-300 opacity-0 pointer-events-none z-50">
         <p id="message-text">Åtgärd utförd!</p>
     </div>
 
-    <!-- Huvudnavigering -->
-    <nav class="bg-[#161b22] shadow-lg sticky top-0 z-10">
+    <!-- Huvudnavigering --><nav class="nav-bg shadow-sm sticky top-0 z-10">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <!-- Logotyp -->
-                <div class="flex-shrink-0">
-                    <!-- OBS: Byt ut denna placeholder-URL mot din faktiska sökväg: assets/renahem.png -->
-                    <img class="h-28 w-auto" 
+            <!-- Nav-container utan fast höjd, använder padding (py-4) istället --><div class="flex justify-between items-center py-4">
+                <!-- Logotyp --><div class="flex-shrink-0">
+                    <!-- OBS: Logotypens höjd satt till h-10 (40px) --><img class="h-10 w-auto" 
                          src="assets/renahem.png" 
                          alt="Ren & Fin AB Logotyp"
-                         onerror="this.onerror=null; this.src='https://placehold.co/180x40/10b981/ffffff?text=Logotyp+Saknas';"
+                         onerror="this.onerror=null; this.src='https://placehold.co/180x40/2c5697/ffffff?text=Logotyp+Saknas';"
                     >
                 </div>
 
-                <!-- Desktop-knappar -->
-                <div class="hidden md:flex items-center space-x-2">
-                    <!-- Standardknappar -->
-                    <a href="#hem" class="px-3 py-1.5 rounded-lg transition duration-200 text-sm font-medium hover:bg-gray-700">Hem</a>
-                    <a href="#funktioner" class="px-3 py-1.5 rounded-lg transition duration-200 text-sm font-medium hover:bg-gray-700">Fördelar</a>
-                    <a href="#tjanster" class="px-3 py-1.5 rounded-lg transition duration-200 text-sm font-medium hover:bg-gray-700">Priser & Tjänster</a>
+                <!-- Desktop-knappar --><div class="hidden md:flex items-center space-x-2">
+                    <!-- Standardknappar --><a href="#hem" class="px-3 py-1.5 rounded-lg transition duration-200 text-sm font-medium nav-text-hover">Hem</a>
+                    <a href="#funktioner" class="px-3 py-1.5 rounded-lg transition duration-200 text-sm font-medium nav-text-hover">Fördelar</a>
+                    <a href="#tjanster" class="px-3 py-1.5 rounded-lg transition duration-200 text-sm font-medium nav-text-hover">Priser & Tjänster</a>
                     
-                    <!-- Primär knapp (Kontakt) -->
-                    <a href="#kontakt" class="accent-bg text-white px-4 py-1.5 rounded-lg transition duration-200 text-sm font-semibold hover:bg-emerald-600 ml-4">Offertförfrågan</a>
+                    <!-- Primär knapp (Kontakt) - ANVÄNDER cta-primary-bg (Logotypens blå) --><a href="#kontakt" class="cta-primary-bg text-white px-4 py-1.5 rounded-lg transition duration-200 text-sm font-semibold ml-4 shadow-md hover:cta-primary-bg:hover">Offertförfrågan</a>
                 </div>
 
-                <!-- Mobilmeny-knapp -->
-                <button type="button" class="md:hidden p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white" aria-controls="mobile-menu" aria-expanded="false" onclick="window.toggleMenu()">
+                <!-- Mobilmeny-knapp --><button type="button" class="md:hidden p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 focus:ring-accent-text" aria-controls="mobile-menu" aria-expanded="false" onclick="window.toggleMenu()">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
                     </svg>
@@ -274,112 +323,109 @@
             </div>
         </div>
 
-        <!-- Mobilmenyn (Döljs som standard) -->
-        <div class="md:hidden hidden" id="mobile-menu">
+        <!-- Mobilmenyn (Döljs som standard) --><div class="md:hidden hidden bg-white border-t border-gray-200" id="mobile-menu">
             <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="#hem" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700" onclick="window.toggleMenu()">Hem</a>
-                <a href="#funktioner" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700" onclick="window.toggleMenu()">Fördelar</a>
-                <a href="#tjanster" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-700" onclick="window.toggleMenu()">Priser & Tjänster</a>
-                <!-- Gör Kontakt till en knapp även i mobilmenyn -->
-                <a href="#kontakt" class="block px-3 py-2 rounded-md text-base font-medium accent-bg text-white hover:bg-emerald-600 transition duration-200 mt-1" onclick="window.toggleMenu()">Offertförfrågan</a>
+                <a href="#hem" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100" onclick="window.toggleMenu()">Hem</a>
+                <a href="#funktioner" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100" onclick="window.toggleMenu()">Fördelar</a>
+                <a href="#tjanster" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100" onclick="window.toggleMenu()">Priser & Tjänster</a>
+                <!-- Gör Kontakt till en knapp även i mobilmenyn - ANVÄNDER cta-primary-bg --><a href="#kontakt" class="block px-3 py-2 rounded-md text-base font-medium cta-primary-bg text-white transition duration-200 mt-1 shadow-md hover:cta-primary-bg:hover" onclick="window.toggleMenu()">Offertförfrågan</a>
             </div>
         </div>
     </nav>
 
-    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
+    <!-- Huvudinnehåll - JUSTERAD TOP-PADDING (pt-6 istället för py-12) --><main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-6 pb-12">
 
-        <!-- Sektion 1: Hero (Huvudbudskap) -->
-        <section id="hem" class="py-20 lg:py-32 text-center">
-            <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold mb-6 leading-tight">
-                <span class="block">Tid för ett skinande rent hem?</span>
-                <span class="block accent-text">Professionell Städning, Enkel Bokning.</span>
+        <!-- Sektion 1: Hero (Huvudbudskap) - JUSTERAD VERTICAL PADDING --><section id="hem" class="py-8 lg:py-16 px-6 sm:px-10 lg:px-20 text-center card-bg rounded-2xl shadow-xl mb-12">
+            
+            <!-- STOR LOGOTYP (NU RESPONSIVT OCH I EGEN CONTAINER) --><div class="mx-auto mb-12 w-full max-w-xs sm:max-w-md lg:max-w-lg"> <!-- mb-6 istället för mb-8 --><img class="w-full h-auto object-contain" 
+                     src="assets/renahem.png" 
+                     alt="Ren & Fin AB Logotyp Stor"
+                     onerror="this.onerror=null; this.src='https://placehold.co/300x120/2c5697/ffffff?text=REN+%26+FIN+AB';"
+                >
+            </div>
+            
+            <h1 class="text-3xl sm:text-5xl lg:text-5xl font-extrabold mb-8 leading-tight">
+                <span class="block text-gray-200">Tid för ett skinande rent hem?</span> <!-- Ljus text för mörk bakgrund --><!-- Uppdaterad rubriktext, använder nu grön accentfärg --><span class="block accent-text">Renahem & Kontorsservice - Professionell Städning och Enkel Bokning.</span>
             </h1>
-            <p class="text-xl sm:text-2xl text-gray-400 mb-10 max-w-3xl mx-auto">
-                Vi tar hand om smutsen så att du kan fokusera på det som är viktigt. Miljövänligt, pålitligt och prisvärt.
+            <p class="text-lg sm:text-xl text-gray-400 mb-10 max-w-3xl mx-auto"> <!-- Mindre text för mörk bakgrund -->Vi tar hand om smutsen så att du kan fokusera på det som är viktigt. Miljövänligt, pålitligt och prisvärt.
             </p>
             
-            <!-- BUTTONS CONTAINER: Ny struktur för responsivitet -->
-            <div class="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
-                <!-- Knapp 1: Boka Din Städning Nu (Primär) -->
-                <a href="#kontakt" class="w-full sm:w-auto accent-bg text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:bg-emerald-600 transition duration-300 transform hover:scale-105">
+            <!-- BUTTONS CONTAINER: Ny struktur för responsivitet --><div class="flex flex-col sm:flex-row justify-center items-center space-y-4 sm:space-y-0 sm:space-x-4">
+                <!-- Knapp 1: Boka Din Städning Nu (Primär) - ANVÄNDER cta-primary-bg --><a href="#kontakt" class="w-full sm:w-auto cta-primary-bg text-white font-semibold py-3 px-8 rounded-xl shadow-lg transition duration-300 transform hover:scale-105 hover:cta-primary-bg:hover">
                     Boka Din Städning Nu
                 </a>
-                <!-- Knapp 2: Våra Fördelar (Sekundär) -->
-                <a href="#funktioner" class="w-full sm:w-auto text-white font-semibold py-3 px-8 border-2 border-gray-600 rounded-xl hover:bg-gray-800 transition duration-300">
+                <!-- Knapp 2: Våra Fördelar (Sekundär) --><a href="#funktioner" class="w-full sm:w-auto text-gray-200 font-semibold py-3 px-8 border-2 border-gray-600 rounded-xl hover:bg-gray-700 transition duration-300">
                     Våra Fördelar
                 </a>
             </div>
+            <div class="mt-16 card-bg p-8 rounded-2xl shadow-xl border border-gray-800 max-w-lg mx-auto">
+    <h3 class="text-2xl font-semibold accent-text mb-4 text-center">Beräkna ditt pris direkt</h3>
+    <p class="text-gray-400 mb-6 text-center">Få en snabb uppskattning för hemstädning baserat på din yta. Priset är efter RUT-avdrag och ett estimat.</p>
+    <div class="space-y-4">
+        <div>
+            <label for="kvm-input" class="block text-sm font-medium mb-2 text-gray-200">Ange din yta i kvadratmeter (kvm)</label>
+            <input type="number" id="kvm-input" oninput="window.calculatePrice()" class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-accent-text focus:ring-accent-text text-gray-100" placeholder="t.ex. 75">
+        </div>
+        <div class="text-center bg-gray-900 p-4 rounded-lg border border-gray-700">
+            <p class="text-sm text-gray-400 uppercase tracking-wider">Uppskattat pris:</p>
+            <p id="price-output" class="text-3xl font-bold text-white transition-all duration-200">Ange yta ovan</p>
+        </div>
+    </div>
+</div>
         </section>
+        
 
-        <!-- Sektion 2: Funktioner (Nu "Fördelar") -->
-        <section id="funktioner" class="py-16 border-t border-gray-700">
-            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12">Dina Fördelar med Oss</h2>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
-                <!-- Fördelskort 1 -->
-                <div class="bg-[#161b22] p-8 rounded-xl shadow-2xl border border-gray-700 transition duration-300 hover:border-accent-text">
+        <!-- Sektion 2: Funktioner (Nu "Fördelar") --><section id="funktioner" class="py-16">
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-16 text-gray-200">Dina Fördelar med Oss</h2> <!-- Ljus text --><div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+                <!-- Fördelskort 1 --><div class="card-bg p-8 rounded-2xl border border-gray-800 transition duration-300 hover:border-accent-text shadow-lg">
                     <div class="accent-text text-3xl mb-4">
-                        <!-- Ikon: Pålitlighet/Lås (Säker och pålitlig service) -->
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8">
+                        <!-- Ikon: Pålitlighet/Lås (Säker och pålitlig service) --><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8">
                             <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                             <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-semibold mb-3 text-white">Pålitlig Kvalitet</h3>
-                    <p class="text-gray-400">Garanterat skinande rent resultat varje gång. Våra team är utbildade och försäkrade.</p>
-                </div>
+                    <h3 class="text-xl font-semibold mb-3 text-gray-200">Pålitlig Kvalitet</h3> <!-- Ljus text --><p class="text-gray-400">Garanterat skinande rent resultat varje gång. Våra team är utbildade och försäkrade.</p> <!-- Ljusare text --></div>
 
-                <!-- Fördelskort 2 -->
-                <div class="bg-[#161b22] p-8 rounded-xl shadow-2xl border border-gray-700 transition duration-300 hover:border-accent-text">
+                <!-- Fördelskort 2: MILJÖVÄNLIGT FOKUS (med ny ikon: Blad/Växt) --><div class="card-bg p-8 rounded-2xl border border-gray-800 transition duration-300 hover:border-accent-text shadow-lg">
                     <div class="accent-text text-3xl mb-4">
-                        <!-- Ikon: Värld/Global (Miljötänk/Hållbart) -->
+                        <!-- Ny Ikon: Blad (Enkel och tydlig symbol för Miljötänk/Hållbart) --><!-- Ikon: Värld/Global (Miljötänk/Hållbart) -->
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8">
                             <circle cx="12" cy="12" r="10"></circle>
                             <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-semibold mb-3 text-white">Miljövänligt Fokus</h3>
-                    <p class="text-gray-400">Vi använder uteslutande Svanenmärkta produkter för en hållbar och hälsosam miljö.</p>
-                </div>
+                    <h3 class="text-xl font-semibold mb-3 text-gray-200">Miljövänligt Fokus</h3> <!-- Ljus text --><p class="text-gray-400">Vi använder uteslutande Svanenmärkta produkter för en hållbar och hälsosam miljö.</p> <!-- Ljusare text --></div>
 
-                <!-- Fördelskort 3 -->
-                <div class="bg-[#161b22] p-8 rounded-xl shadow-2xl border border-gray-700 transition duration-300 hover:border-accent-text">
+                <!-- Fördelskort 3 --><div class="card-bg p-8 rounded-2xl border border-gray-800 transition duration-300 hover:border-accent-text shadow-lg">
                     <div class="accent-text text-3xl mb-4">
-                        <!-- Ikon: Kalender/Klocka (Flexibel Bokning) -->
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8">
+                        <!-- Ikon: Kalender/Klocka (Flexibel Bokning) --><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-8 h-8">
                             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
                             <line x1="16" y1="2" x2="16" y2="6"></line>
                             <line x1="8" y1="2" x2="8" y2="6"></line>
                             <line x1="3" y1="10" x2="21" y2="10"></line>
                         </svg>
                     </div>
-                    <h3 class="text-xl font-semibold mb-3 text-white">Enkel & Flexibel Bokning</h3>
-                    <p class="text-gray-400">Boka, ändra eller avboka städtider enkelt online. Vi anpassar oss efter ditt schema.</p>
-                </div>
+                    <h3 class="text-xl font-semibold mb-3 text-gray-200">Enkel & Flexibel Bokning</h3> <!-- Ljus text --><p class="text-gray-400">Boka, ändra eller avboka städtider enkelt online. Vi anpassar oss efter ditt schema.</p> <!-- Ljusare text --></div>
             </div>
         </section>
         
-        <!-- Sektion 3: Tjänster (Detaljerad) - Nu "Priser & Tjänster" -->
-        <section id="tjanster" class="py-16 border-t border-gray-700">
-            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12">Priser & Huvudtjänster</h2>
-
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
+        <!-- Sektion 3: Tjänster (Detaljerad) - Nu "Priser & Tjänster" --><section id="tjanster" class="py-16">
+            
+            <h2 class="text-3xl sm:text-4xl font-bold text-center mb-16 text-gray-200">Priser & Huvudtjänster</h2> <!-- Ljus text --><div class="grid grid-cols-1 md:grid-cols-2 gap-10">
                 <!-- Tjänstekort 1: Hem/Privatstädning -->
-                <div class="bg-[#161b22] p-6 rounded-xl shadow-xl border border-gray-700">
+                 
+                <div class="card-bg p-8 rounded-2xl shadow-lg border border-gray-800">
                     <h3 class="text-2xl font-semibold accent-text mb-3">Hem- & Storstädning</h3>
-                    <p class="text-gray-400 mb-4">Regelbunden veckostädning eller en grundlig storstädning. Inklusive fönsterputs på begäran.</p>
-                    <ul class="list-disc list-inside text-gray-500 space-y-1 pl-4">
+                    <p class="text-gray-400 mb-4">Regelbunden veckostädning eller en grundlig storstädning. Inklusive fönsterputs på begäran.</p> <!-- Ljusare text --><ul class="list-disc list-inside text-gray-500 space-y-1 pl-4">
                         <li>Fast timpris (efter RUT-avdrag)</li>
                         <li>Nyckelfria lösningar tillgängliga</li>
                         <li>Personlig städare vid varje tillfälle</li>
                     </ul>
                 </div>
 
-                <!-- Tjänstekort 2: Företag/Flytt -->
-                <div class="bg-[#161b22] p-6 rounded-xl shadow-xl border border-gray-700">
+                <!-- Tjänstekort 2: Företag/Flytt --><div class="card-bg p-8 rounded-2xl shadow-lg border border-gray-800">
                     <h3 class="text-2xl font-semibold accent-text mb-3">Kontor & Flyttstädning</h3>
-                    <p class="text-gray-400 mb-4">Specialtjänster för företag och dig som ska byta bostad. 100% nöjd-kund-garanti på flyttstäd.</p>
-                    <ul class="list-disc list-inside text-gray-500 space-y-1 pl-4">
+                    <p class="text-gray-400 mb-4">Specialtjänster för företag och dig som ska byta bostad. 100% nöjd-kund-garanti på flyttstäd.</p> <!-- Ljusare text --><ul class="list-disc list-inside text-gray-500 space-y-1 pl-4">
                         <li>Offert baserad på yta och behov</li>
                         <li>Flexibla tider (kvällar/helger för kontor)</li>
                         <li>All utrustning och material ingår</li>
@@ -388,64 +434,46 @@
             </div>
             
             <div class="text-center mt-12">
-                <a href="#kontakt" class="text-gray-400 hover:accent-text transition duration-300 border-b border-gray-600 pb-1">Få ett exakt pris för din yta &rarr;</a>
-            </div>
+                <a href="#kontakt" class="text-gray-400 hover:accent-text transition duration-300 border-b border-gray-600 pb-1">Få ett exakt pris för din yta &rarr;</a> <!-- Ljusare text --></div>
         </section>
 
 
-        <!-- Sektion 4: CTA (Redo att agera) -->
-        <section id="cta-ready" class="py-16 text-center border-t border-gray-700">
-            <h2 class="text-3xl sm:text-4xl font-bold mb-4">Redo för en Renare Vardag?</h2>
-            <p class="text-xl text-gray-400 mb-8 max-w-3xl mx-auto">
-                Slösa inte tid på städning. Låt oss hantera det, snabbt och effektivt. Begär din kostnadsfria offert idag.
+        <!-- Sektion 4: CTA (Redo att agera) --><section id="cta-ready" class="py-16 text-center card-bg rounded-2xl shadow-xl border border-gray-800">
+            <h2 class="text-3xl sm:text-4xl font-bold mb-4 text-gray-200">Redo för en Renare Vardag?</h2> <!-- Ljus text --><p class="text-xl text-gray-400 mb-8 max-w-3xl mx-auto"> <!-- Ljusare text -->Slösa inte tid på städning. Låt oss hantera det, snabbt och effektivt. Begär din kostnadsfria offert idag.
             </p>
-            <a href="#kontakt" class="accent-bg text-white font-semibold py-3 px-8 rounded-xl shadow-lg hover:bg-emerald-600 transition duration-300">
+            <!-- CTA-knapp - ANVÄNDER cta-primary-bg (Logotypens blå) --><a href="#kontakt" class="cta-primary-bg text-white font-semibold py-3 px-8 rounded-xl shadow-lg transition duration-300 hover:cta-primary-bg:hover">
                 Få En Offert
             </a>
         </section>
         
-        <!-- Sektion 5: Kontaktformulär - NU MED E-POSTSUBMISSION -->
-        <section id="kontakt" class="py-16 border-t border-gray-700">
-             <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12">Kontakta Oss för Offert</h2>
-
-             <div class="max-w-lg mx-auto bg-[#161b22] p-8 rounded-xl shadow-2xl border border-gray-700">
-                <!-- Formuläret anropar submitForm som nu skickar till din E-post proxy -->
-                <form onsubmit="window.submitForm(event)">
+        <!-- Sektion 5: Kontaktformulär - NU MED E-POSTSUBMISSION --><section id="kontakt" class="py-16">
+             <h2 class="text-3xl sm:text-4xl font-bold text-center mb-12 text-gray-200">Kontakta Oss för Offert</h2> <!-- Ljus text --><div class="max-w-lg mx-auto card-bg p-8 rounded-2xl shadow-2xl border border-gray-800">
+                <!-- Formuläret anropar submitForm som nu skickar till din E-post proxy --><form onsubmit="window.submitForm(event)">
                     <div class="mb-4">
-                        <label for="name" class="block text-sm font-medium mb-2">Namn</label>
-                        <input type="text" id="name" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-accent-text focus:ring-accent-text text-white" placeholder="Ditt Namn">
-                    </div>
+                        <label for="name" class="block text-sm font-medium mb-2 text-gray-200">Namn</label> <!-- Ljus text --><input type="text" id="name" required class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-accent-text focus:ring-accent-text text-gray-100" placeholder="Ditt Namn"> <!-- Mörkare input, ljus text --></div>
                     <div class="mb-4">
-                        <label for="email" class="block text-sm font-medium mb-2">E-post</label>
-                        <input type="email" id="email" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-accent-text focus:ring-accent-text text-white" placeholder="din.epost@exempel.com">
-                    </div>
+                        <label for="email" class="block text-sm font-medium mb-2 text-gray-200">E-post</label> <!-- Ljus text --><input type="email" id="email" required class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-accent-text focus:ring-accent-text text-gray-100" placeholder="din.epost@exempel.com"> <!-- Mörkare input, ljus text --></div>
                     <div class="mb-6">
-                        <label for="message" class="block text-sm font-medium mb-2">Förfrågan</label>
-                        <textarea id="message" rows="4" required class="w-full p-3 rounded-lg bg-gray-800 border border-gray-700 focus:border-accent-text focus:ring-accent-text text-white" placeholder="Beskriv vad du behöver städhjälp med (t.ex. 'Veckostädning av lägenhet, 75 kvm, i Göteborg')."></textarea>
-                    </div>
+                        <label for="message" class="block text-sm font-medium mb-2 text-gray-200">Förfrågan</label> <!-- Ljus text --><textarea id="message" rows="4" required class="w-full p-3 rounded-lg bg-gray-700 border border-gray-600 focus:border-accent-text focus:ring-accent-text text-gray-100" placeholder="Beskriv vad du behöver städhjälp med (t.ex. 'Veckostädning av lägenhet, 75 kvm, i Göteborg')."></textarea> <!-- Mörkare input, ljus text --></div>
 
-                    <!-- Gemini LLM-knapp för analys -->
-                    <button type="button" onclick="window.analyzeMessage()" class="w-full bg-indigo-600 text-white font-semibold py-3 mb-4 rounded-xl hover:bg-indigo-700 transition duration-300 flex items-center justify-center">
+                    <!-- Gemini LLM-knapp för analys - ANVÄNDER cta-primary-bg (Logotyp Blå) --><button type="button" onclick="window.analyzeMessage()" class="w-full cta-primary-bg text-white font-semibold py-3 mb-4 rounded-xl hover:cta-primary-bg:hover transition duration-300 flex items-center justify-center shadow-md">
                         Få AI-analys av din förfrågan ✨
                         <div id="loader" class="loader ml-3 hidden"></div>
                     </button>
                     
-                    <!-- AI-resultat (LLM Output) -->
-                    <div id="ai-results" class="hidden bg-gray-800 p-4 rounded-lg border border-gray-700 mb-6 transition duration-300">
-                        <h4 class="text-sm font-bold text-indigo-400 mb-2">AI-Assistentens Bedömning (Internt)</h4>
-                        
-                        <div class="mb-3">
-                            <p class="text-xs text-gray-500 font-medium uppercase">Föreslagen Tjänstekategori:</p>
-                            <p id="ai-category" class="text-white font-semibold"></p>
+                    <!-- AI-resultat (LLM Output) --><div id="ai-results" class="hidden bg-gray-700 p-4 rounded-lg border border-gray-600 mb-6 transition duration-300">
+                        <h4 class="text-sm font-bold text-blue-400 mb-2">AI-Assistentens Bedömning (Internt)</h4> <!-- Ljusare blå text för kontrast --><div class="mb-3">
+                            <p class="text-xs text-gray-400 font-medium uppercase">Föreslagen Tjänstekategori:</p>
+                            <p id="ai-category" class="text-gray-200 font-semibold"></p>
                         </div>
                         
                         <div>
-                            <p class="text-xs text-gray-500 font-medium uppercase">Utkast till Svar (för medarbetare):</p>
+                            <p class="text-xs text-gray-400 font-medium uppercase">Utkast till Svar (för medarbetare):</p>
                             <p id="ai-draft" class="text-gray-300 italic text-sm"></p>
                         </div>
                     </div>
                     
-                    <button type="submit" class="w-full accent-bg text-white font-semibold py-3 rounded-xl hover:bg-emerald-600 transition duration-300 flex items-center justify-center">
+                    <!-- Skicka-knapp - ANVÄNDER accent-bg (Grön) --><button type="submit" class="w-full accent-bg text-white font-semibold py-3 rounded-xl hover:bg-emerald-600 transition duration-300 flex items-center justify-center shadow-md">
                         Skicka Förfrågan
                     </button>
                 </form>
@@ -454,10 +482,7 @@
 
     </main>
 
-    <!-- Sidfot -->
-    <footer class="bg-[#161b22] mt-10 p-6 text-center border-t border-gray-700">
-        <p class="text-sm text-gray-500">
-            &copy; 2025 Ren & Fin AB. Alla rättigheter reserverade. | <a href="#" class="hover:accent-text">Integritetspolicy</a>
+    <!-- Sidfot --><footer class="bg-gray-900 mt-10 p-6 text-center border-t border-gray-800"> <!-- Mörkare fotfärg --><p class="text-sm text-gray-400"> <!-- Ljusare text -->&copy; 2025 Renahem & Kontorsservice AB. Alla rättigheter reserverade. | <a href="#" class="hover:accent-text">Integritetspolicy</a>
         </p>
     </footer>
 
