@@ -315,7 +315,7 @@ window.calculatePrice = calculatePrice;
                     <!-- Primär knapp (Kontakt) - ANVÄNDER cta-primary-bg (Logotypens blå) --><a href="#kontakt" class="cta-primary-bg text-white px-4 py-1.5 rounded-lg transition duration-200 text-sm font-semibold ml-4 shadow-md hover:cta-primary-bg:hover">Offertförfrågan</a>
                 </div>
 
-                <!-- Mobilmeny-knapp --><button type="button" class="md:hidden p-2 rounded-md hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 focus:ring-accent-text" aria-controls="mobile-menu" aria-expanded="false" onclick="window.toggleMenu()">
+                <!-- Mobilmeny-knapp --><button type="button" class="md:hidden p-2 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-50 focus:ring-accent-text" aria-controls="mobile-menu" aria-expanded="false" onclick="window.toggleMenu()">
                     <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
                     </svg>
@@ -323,12 +323,11 @@ window.calculatePrice = calculatePrice;
             </div>
         </div>
 
-        <!-- Mobilmenyn (Döljs som standard) --><div class="md:hidden hidden bg-white border-t border-gray-200" id="mobile-menu">
+        <!-- Mobilmenyn (Döljs som standard) --><div class="md:hidden hidden nav-bg border-t border-gray-700" id="mobile-menu">
             <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-                <a href="#hem" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100" onclick="window.toggleMenu()">Hem</a>
-                <a href="#funktioner" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100" onclick="window.toggleMenu()">Fördelar</a>
-                <a href="#tjanster" class="block px-3 py-2 rounded-md text-base font-medium hover:bg-gray-100" onclick="window.toggleMenu()">Priser & Tjänster</a>
-                <!-- Gör Kontakt till en knapp även i mobilmenyn - ANVÄNDER cta-primary-bg --><a href="#kontakt" class="block px-3 py-2 rounded-md text-base font-medium cta-primary-bg text-white transition duration-200 mt-1 shadow-md hover:cta-primary-bg:hover" onclick="window.toggleMenu()">Offertförfrågan</a>
+<a href="#hem" class="block px-3 py-2 rounded-md text-base font-medium text-gray-200 hover:bg-gray-700" onclick="window.toggleMenu()">Hem</a>
+<a href="#funktioner" class="block px-3 py-2 rounded-md text-base font-medium text-gray-200 hover:bg-gray-700" onclick="window.toggleMenu()">Fördelar</a>
+<a href="#tjanster" class="block px-3 py-2 rounded-md text-base font-medium text-gray-200 hover:bg-gray-700" onclick="window.toggleMenu()">Priser & Tjänster</a>                <!-- Gör Kontakt till en knapp även i mobilmenyn - ANVÄNDER cta-primary-bg --><a href="#kontakt" class="block px-3 py-2 rounded-md text-base font-medium cta-primary-bg text-white transition duration-200 mt-1 shadow-md hover:cta-primary-bg:hover" onclick="window.toggleMenu()">Offertförfrågan</a>
             </div>
         </div>
     </nav>
