@@ -45,7 +45,10 @@
         const PROXY_GEMINI_URL = '/api/analyze-message'; 
         
         // Ny URL för E-post-proxy (MÅSTE implementeras på din server)
-        const PROXY_EMAIL_URL = '/api/send-email'; 
+        // const PROXY_EMAIL_URL = '/api/send-email'; 
+        const PROXY_EMAIL_URL = 'http://localhost:3000/api/send-email'; 
+
+        
 
         // --- GEMENSAMMA FUNKTIONER ---
 
@@ -242,8 +245,13 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between items-center h-16">
                 <!-- Logotyp -->
-                <div class="flex-shrink-0 text-2xl font-bold accent-text">
-                    REN & FIN AB
+                <div class="flex-shrink-0">
+                    <!-- OBS: Byt ut denna placeholder-URL mot din faktiska sökväg: assets/renahem.png -->
+                    <img class="h-28 w-auto" 
+                         src="assets/renahem.png" 
+                         alt="Ren & Fin AB Logotyp"
+                         onerror="this.onerror=null; this.src='https://placehold.co/180x40/10b981/ffffff?text=Logotyp+Saknas';"
+                    >
                 </div>
 
                 <!-- Desktop-knappar -->
