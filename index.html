@@ -114,15 +114,40 @@
         }
         
         .form-label {
-            @apply block text-sm font-semibold text-gray-700 mb-1;
+            /* @apply block text-left text-sm font-semibold text-gray-700 mb-1; */
+            /* UPPDATERAD CSS (ersätter @apply): */
+            display: block;
+            text-align: left;
+            font-size: 0.875rem; /* 14px */
+            line-height: 1.25rem;
+            font-weight: 600;
+            color: #374151; /* text-gray-700 */
+            margin-bottom: 0.25rem; /* mb-1 */
         }
         
         .submit-btn {
-            @apply w-full py-3 px-6 bg-brand-blue text-white font-bold rounded-lg shadow-lg transform transition-transform duration-200;
+            /* @apply w-full py-3 px-6 bg-brand-blue text-white font-bold rounded-lg shadow-lg transform transition-transform duration-200; */
+            /* UPPDATERAD CSS (ersätter @apply): */
+            width: 100%;
+            padding-top: 0.75rem; /* py-3 */
+            padding-bottom: 0.75rem;
+            padding-left: 1.5rem; /* px-6 */
+            padding-right: 1.5rem;
+            background-color: var(--brand-blue);
+            color: #ffffff; /* text-white */
+            font-weight: 700; /* font-bold */
+            border-radius: 0.5rem; /* rounded-lg */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-lg */
+            transform: translateY(0);
+            transition-property: transform, background-color;
+            transition-duration: 200ms;
         }
         
         .submit-btn:hover {
-            @apply bg-blue-800 -translate-y-1;
+            /* @apply bg-blue-800 -translate-y-1; */
+            /* UPPDATERAD CSS (ersätter @apply): */
+            background-color: #1e40af; /* bg-blue-800 (lite mörkare blå) */
+            transform: translateY(-0.25rem); /* -translate-y-1 */
         }
         
         /* Ikon-wrapper */
@@ -170,6 +195,72 @@
             transition: transform 0.1s linear; /* Gör rörelsen mjuk */
         }
 
+        /* ----- NYA STILAR FÖR KONTAKTFORMULÄR (UTAN @APPLY) ----- */
+        .form-group {
+            position: relative;
+            margin-bottom: 1.5rem; /* Utrymme mellan fälten */
+        }
+
+        .form-field {
+            /* Stil för själva inmatningsfältet */
+            width: 100%;
+            padding: 1.5rem 1rem 0.5rem 1rem; /* pt-6, pb-2, px-4 */
+            background-color: #f3f4f6; /* bg-gray-100 */
+            border-bottom-width: 2px;
+            border-color: #d1d5db; /* border-gray-300 */
+            border-top-left-radius: 0.5rem; /* rounded-t-lg */
+            border-top-right-radius: 0.5rem;
+            /* FIX FÖR DUBBEL TEXT: 
+               Sätt textfärgen till normal, inte transparent */
+            color: #1f2937; /* text-gray-900 */
+            transition: border-color 0.3s ease-in-out;
+        }
+        
+        /* FIX FÖR DUBBEL TEXT: 
+           Gör själva placeholder-texten osynlig */
+        .form-field::placeholder {
+            color: transparent;
+        }
+        
+        .form-field:focus {
+             outline: none;
+             border-color: var(--brand-blue); /* focus:border-brand-blue */
+        }
+        
+        /* Specifik stil för textarea så den har rätt höjd */
+        .form-field-textarea {
+             min-height: 120px; /* Ge textarea lite mer utrymme */
+        }
+
+        .form-field-label {
+            /* Stil för etiketten (texten "Ditt namn" etc.) */
+            position: absolute;
+            left: 1rem; /* left-4 */
+            top: 1rem;  /* top-4 */
+            color: #6b7280; /* text-gray-500 */
+            font-size: 1rem; /* text-base */
+            line-height: 1.5rem;
+            transition: all 0.3s ease-in-out;
+            pointer-events: none; 
+        }
+
+        /* * Denna magi händer när:
+         * 1. Fältet är i fokus (fokuserat)
+         * 2. Fältet *inte* är tomt (via :not(:placeholder-shown))
+        */
+        .form-field:focus + .form-field-label,
+        .form-field:not(:placeholder-shown) + .form-field-label {
+            /* Flytta etiketten uppåt, förminska den, och ändra färg */
+            transform: translateY(-0.75rem) scale(0.75); /* -translate-y-3 scale-75 */
+            color: var(--brand-blue); /* text-brand-blue */
+        }
+        
+        /* * När fältet *inte* är tomt, visa den riktiga textfärgen 
+         * (ersätter den transparenta placeholder-färgen)
+        */
+        .form-field:not(:placeholder-shown) {
+            color: #1f2937; /* text-gray-900 */
+        }
         /* ----- SLUT PÅ NYA STILAR ----- */
 
     </style>
@@ -217,8 +308,8 @@
         <!-- UPPDATERAD HERO: Tog bort prisräknaren. Lade till id="hero-bg" för parallax. -->
         <section id="hero" class="relative w-full h-screen flex items-center justify-center overflow-hidden bg-brand-light-blue">
             <!-- Bakgrund (kan vara en bild på ett rent hem/kontor) -->
-            <!-- LADE TILL id="hero-bg" och bg-fixed för parallax-effekt -->
-            <div id="hero-bg" class="absolute inset-0 bg-cover bg-center opacity-30 bg-fixed" style="background-image: url('https://images.unsplash.com/photo-1581578731548-c64695cc6952?ixlib=rb-4.0.3&id=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto-format&fit=crop&w=1770&q=80')"></div>
+            <!-- BORTTAGEN: bg-fixed. Effekten styrs nu av JS. -->
+            <div id="hero-bg" class="absolute inset-0 bg-cover bg-center opacity-30" style="background-image: url('https://images.unsplash.com/photo-1581578731548-c64695cc6952?ixlib=rb-4.0.3&id=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto-format&fit=crop&w=1770&q=80')"></div>
             
             <!-- Innehålls-wrapper -->
             <div class="relative z-10 flex flex-col items-center w-full px-4 pt-24 md:pt-0"> 
@@ -313,11 +404,13 @@
             
             <div class="container mx-auto px-6 grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
                 <!-- Bild (t.ex. på teamet eller en ren miljö) -->
-                <!-- LADE TILL id="about-image-container" för parallax -->
+                <!-- BORTTAGEN: id="about-image-container" då JS-parallaxen tas bort -->
                 <div class="rounded-xl shadow-2xl overflow-hidden">
                     <img src="https://images.unsplash.com/photo-1528605248644-14dd04022da1?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto-format&fit=crop&w=1770&q=80" alt="Glatt städteam" class="w-full h-full object-cover">
                 </div>
-                <!-- Textinnehåll --><div>
+                <!-- Textinnehåll -->
+                <!-- UPPDATERAD: Lade till text-center md:text-left för att centrera på mobil -->
+                <div class="text-center md:text-left">
                     <h2 class="text-4xl font-bold text-brand-blue mb-6">Vilka är Rena Hem?</h2>
                     <p class="text-lg text-gray-700 mb-4">
                         Rena Hem & Kontorsservice är din lokala och pålitliga städpartner. Vi grundades med en enkel vision: att göra vardagen enklare och renare för våra kunder.
@@ -340,24 +433,38 @@
                         Har du frågor eller vill du boka en städning? Fyll i formuläret nedan så återkommer vi så snart vi kan.
                     </p>
                     
-                    <form id="contact-form" class="bg-gray-50 p-8 md:p-12 rounded-xl shadow-xl space-y-6">
-                        <div>
-                            <label for="name" class="form-label">Ditt namn</label>
-                            <input type="text" id="name" name="name" class="form-input" placeholder="Kalle Anka" required>
+                    <!-- UPPDATERAT FORMULÄR: Bytte bg-gray-50 mot bg-white och space-y-6 mot space-y-0 -->
+                    <form id="contact-form" class="bg-white p-8 md:p-12 rounded-xl shadow-xl space-y-0">
+                        
+                        <!-- Ny Form-grupp 1: Namn -->
+                        <div class="form-group">
+                            <!-- `placeholder` måste finnas men är "osynlig" -->
+                            <input type="text" id="name" name="name" class="form-field" placeholder="Ditt namn" required>
+                            <label for="name" class="form-field-label">Ditt namn</label>
                         </div>
-                        <div>
-                            <label for="email" class="form-label">Din e-post</label>
-                            <input type="email" id="email" name="email" class="form-input" placeholder="kalle@anka.se" required>
+                        
+                        <!-- Ny Form-grupp 2: E-post -->
+                        <div class="form-group">
+                            <input type="email" id="email" name="email" class="form-field" placeholder="Din e-post" required>
+                            <label for="email" class="form-field-label">Din e-post</label>
                         </div>
-                        <div>
-                            <label for="phone" class="form-label">Telefonnummer (frivilligt)</label>
-                            <input type="tel" id="phone" name="phone" class="form-input" placeholder="070-123 45 67">
+
+                        <!-- Ny Form-grupp 3: Telefon -->
+                        <div class="form-group">
+                            <input type="tel" id="phone" name="phone" class="form-field" placeholder="Telefonnummer (frivilligt)">
+                            <label for="phone" class="form-field-label">Telefonnummer (frivilligt)</label>
                         </div>
-                        <div>
-                            <label for="message" class="form-label">Ditt meddelande</label>
-                            <textarea id="message" name="message" rows="5" class="form-input" placeholder="Jag skulle vilja veta mer om er hemstädning..." required></textarea>
+
+                        <!-- Ny Form-grupp 4: Meddelande -->
+                        <div class="form-group">
+                            <!-- Lade till form-field-textarea för höjden -->
+                            <textarea id="message" name="message" rows="5" class="form-field form-field-textarea" placeholder="Ditt meddelande" required></textarea>
+                            <!-- Etiketten fungerar nu likadant för textarea -->
+                            <label for="message" class="form-field-label">Ditt meddelande</label>
                         </div>
-                        <div>
+                        
+                        <!-- Skicka-knapp (Lade till lite marginal uppåt) -->
+                        <div class="pt-4">
                             <button type="submit" class="submit-btn">
                                 Skicka meddelande
                             </button>
@@ -556,43 +663,36 @@
 
             // 2. Parallax-effekter (Scroll Listener)
             const heroBg = document.getElementById('hero-bg');
-            const aboutImageContainer = document.getElementById('about-image-container');
+            let lastScrollY = 0;
+            let ticking = false;
+            
+            function updateHeroParallax() {
+                // Gör effekten väldigt subtil genom att multiplicera med ett lågt tal (t.ex. 0.2)
+                const offset = lastScrollY * 0.2; 
+                
+                if (heroBg) {
+                    // Använder translate3d för att (försöka) tvinga hårdvaruacceleration
+                    heroBg.style.transform = `translate3d(0, ${offset}px, 0)`;
+                }
+                ticking = false;
+            }
 
             window.addEventListener('scroll', () => {
-                const scrollY = window.scrollY;
-                const viewportHeight = window.innerHeight;
-
-                // Parallax för Hero-bakgrund
-                if (heroBg) {
-                    // Flyttar bakgrunden nedåt med 40% av skroll-hastigheten
-                    heroBg.style.transform = `translateY(${scrollY * 0.4}px)`;
-                }
-
-                // Parallax för "Om Oss"-bilden
-                if (aboutImageContainer) {
-                    const aboutImg = aboutImageContainer.querySelector('img');
-                    const rect = aboutImageContainer.getBoundingClientRect();
-
-                    // Kolla om elementet är i synfältet
-                    if (rect.top < viewportHeight && rect.bottom > 0) {
-                        // Beräkna hur långt in i synfältet elementet är
-                        // `progress` går från ca -1 (precis på väg in nedanför) till 1 (precis på väg ut ovanför)
-                        const progress = (rect.top - (viewportHeight / 2)) / (viewportHeight / 2);
-                        
-                        // Applicera en motsatt rörelse. 
-                        // * -1 gör att den rör sig uppåt när man skrollar nedåt.
-                        // * 30 är antalet pixlar den kan röra sig (justera vid behov)
-                        const yOffset = -1 * progress * 30; 
-                        
-                        if (aboutImg) {
-                            aboutImg.style.transform = `translateY(${yOffset}px)`;
-                        }
-                    }
-                }
-            });
+                lastScrollY = window.scrollY;
+                if (!ticking) {
+                    window.requestAnimationFrame(updateHeroParallax);
+                    ticking = true; // <-- FIX: Lade till denna rad
+                } // <-- FIX: Lade till måsvinge för att stänga 'if'
+            }); // <-- FIX: Stängde 'scroll'-listenern korrekt
+            
+            /* --- KORRIGERING AV SYNTAXFEL ---
+               Tidigare felaktiga kommentarer har tagits bort.
+            */
 
         });
         // ----- SLUT PÅ ANIMATIONS-SKRIPT -----
+
+        /* KORRIGERING: Tog bort felaktig HTML-kommentar som låg här */
 
     </script>
 
